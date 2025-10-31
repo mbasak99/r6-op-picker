@@ -3,3 +3,8 @@ My friends and I like to play Rainbow 6 Siege most nights we have free, and some
 
 # Run Instructions
 `go run main.go`
+
+# What I Used for This
+- [bubbletea] (https://github.com/charmbracelet/bubbletea)
+- [bubbles] (https://github.com/charmbracelet/bubbles)
+- [R6 API] (https://r6data.eu/)
