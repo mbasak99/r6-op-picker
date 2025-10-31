@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -12,11 +12,23 @@ import (
 // global var because I don't wanna keep hitting the API endpoint and get rate-limited
 // var operators map[string][]string
 
+// type operator struct {
+// 	name string
+// 	img  string
+// 	side string
+// }
+
+type operator struct {
+	Name   string `json:"name"`
+	ImgURL string `json:"icon_url"`
+	Side   string `json:"side"`
+}
+
 // Model of what the program is going to work with
 type model struct {
-	operators   map[string][]string
-	playerOpMap map[string]string // Each player will have an operator assigned to them
-	side        string            // Side is either Attacker or Defender
+	Operators   []operator
+	PlayerOpMap map[string]string // Each player will have an operator assigned to them
+	Side        string            // Team's current side, side is either Attacker or Defender
 }
 
 // Initialize all the ops to later choose from
@@ -28,15 +40,23 @@ func initModel() model {
 	}
 	defer resp.Body.Close()
 
-	ops, err := io.ReadAll(resp.Body)
+	rawOperators, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Failed to read operator data from API: %+v", err)
 	}
 
-	fmt.Printf("%+s", ops)
-	// Sort operator by side
+	// Store convert JSON to Go struct
+	var operatorsJson []operator
+	err = json.Unmarshal([]byte(rawOperators), &operatorsJson)
+	if err != nil {
+		log.Fatalf("Failed to parse operator JSON: %+v\n", err)
+	}
 
-	return model{}
+	// Only have the operators initialized
+	// Get the other info when the user starts interacting with the terminal
+	return model{
+		Operators: operatorsJson,
+	}
 }
 
 func (m model) Init() tea.Cmd {
