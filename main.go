@@ -2,21 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
-
-// global var because I don't wanna keep hitting the API endpoint and get rate-limited
-// var operators map[string][]string
-
-// type operator struct {
-// 	name string
-// 	img  string
-// 	side string
-// }
 
 type operator struct {
 	Name   string `json:"name"`
@@ -26,9 +18,11 @@ type operator struct {
 
 // Model of what the program is going to work with
 type model struct {
-	Operators   []operator
-	PlayerOpMap map[string]string // Each player will have an operator assigned to them
-	Side        string            // Team's current side, side is either Attacker or Defender
+	Cursor           int
+	AvailableOptions []string
+	Operators        []operator
+	PlayerOpMap      map[string]string // Each player will have an operator assigned to them
+	Side             string            // Team's current side, side is either Attacker or Defender
 }
 
 // Initialize all the ops to later choose from
@@ -55,8 +49,24 @@ func initModel() model {
 	// Only have the operators initialized
 	// Get the other info when the user starts interacting with the terminal
 	return model{
-		Operators: operatorsJson,
+		Operators:        operatorsJson,
+		Cursor:           0,
+		AvailableOptions: []string{"Enter players in the team", "Select current side", "Reset "},
 	}
+}
+
+func (m model) basicInformationSet() bool {
+	userFilledNeededInfo := false
+
+	// check player map for at least one player
+	for k, v := range m.PlayerOpMap {
+		fmt.Println(k, v)
+		if k != "" {
+			userFilledNeededInfo = true
+		}
+	}
+
+	return userFilledNeededInfo
 }
 
 func (m model) Init() tea.Cmd {
@@ -69,13 +79,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "up":
+			if m.Cursor > 0 {
+				m.Cursor++
+			}
+		case "down":
+			if m.Cursor < len(m.AvailableOptions)-1 {
+				m.Cursor--
+			}
 		}
 	}
 	return m, nil
 }
 
 func (m model) View() string {
-	return "TODO\n"
+	s := "Please choose one of the options below:\n\n"
+
+	for i, v := range m.AvailableOptions {
+		cursor := " "
+		if m.Cursor == i {
+			cursor = ">"
+		}
+
+		s += fmt.Sprintf("%s %d) %s\n", cursor, i+1, v)
+	}
+
+	s += "\n\nPress q to quit.\n"
+	return s + "\n"
 }
 
 func main() {
