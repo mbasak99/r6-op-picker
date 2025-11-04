@@ -23,6 +23,8 @@ type model struct {
 	Operators        []operator
 	PlayerOpMap      map[string]string // Each player will have an operator assigned to them
 	Side             string            // Team's current side, side is either Attacker or Defender
+	Screen           string
+	Choice           int // use inconjunction with screen to update screen
 }
 
 // Initialize all the ops to later choose from
@@ -51,7 +53,8 @@ func initModel() model {
 	return model{
 		Operators:        operatorsJson,
 		Cursor:           0,
-		AvailableOptions: []string{"Enter players in the team", "Select current side", "Reset "},
+		AvailableOptions: []string{"Enter players in the team" /*,"Select current side"*/, "Reset "},
+		Screen:           "home",
 	}
 }
 
@@ -80,12 +83,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up":
+			// decrement since it's going up
 			if m.Cursor > 0 {
-				m.Cursor++
+				m.Cursor--
 			}
 		case "down":
+			// increment since it'll go down
 			if m.Cursor < len(m.AvailableOptions)-1 {
-				m.Cursor--
+				m.Cursor++
+			}
+		case "enter":
+			if m.Screen == "home" && m.Cursor == 0 {
+				// change Screen to team and update AvailableOptions
+				m.Screen = "team"
+			} else if m.Screen == "team" {
+				m.Screen = "home"
 			}
 		}
 	}
@@ -93,7 +105,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	// Change prompt for user based on screen and choice
 	s := "Please choose one of the options below:\n\n"
+	if m.Screen == "team" {
+		s = "Please enter your teammates' names:\n\n"
+	}
 
 	for i, v := range m.AvailableOptions {
 		cursor := " "
@@ -101,10 +117,15 @@ func (m model) View() string {
 			cursor = ">"
 		}
 
-		s += fmt.Sprintf("%s %d) %s\n", cursor, i+1, v)
+		s += fmt.Sprintf("%s %d. %s\n", cursor, i+1, v)
 	}
 
-	s += "\n\nPress q to quit.\n"
+	switch m.Screen {
+	case "home":
+		s += "\n\nPress q to quit.\n"
+	case "team":
+		s += "\n\nPress Enter without typing a name to return."
+	}
 	return s + "\n"
 }
 
